@@ -352,6 +352,22 @@ const convLocal = {
             return new TextDecoder("utf-8").decode(hexToBytes);
         },
     },
+    const TS0601_GIEX_GX03_resetCountdown = {
+        cluster: 'manuSpecificTuya',
+        type: ['commandDataReport'],
+        convert: (model, msg, publish, options, meta) => {
+            const result = tuya.fz.datapoints.convert(model, msg, publish, options, meta);
+
+            if (result?.state_1 === 'Closed') {
+                result.countdown_1 = null;
+            }
+            if (result?.state_2 === 'Closed') {
+                result.countdown_2 = null;
+            }
+
+            return result;
+        }
+    },
 };
 
 const tzLocal = {
@@ -17563,52 +17579,68 @@ export const definitions: DefinitionWithExtend[] = [
         fingerprint: tuya.fingerprint("TS0601", ["_TZE284_8zizsafo", "_TZE284_iilebqoo"]),
         model: "GX03",
         vendor: "GIEX",
-        description: "GIEX 2 zone watering timer",
-        fromZigbee: [tuya.fz.datapoints],
+        description: 'GIEX dual-zone watering timer',
+        fromZigbee: [localStore.TS0601_GIEX_GX03_resetCountdown, tuya.fz.ignore_tuya_set_time],
         toZigbee: [tuya.tz.datapoints],
         configure: tuya.configureMagicPacket,
         exposes: [
-            e.binary("valve_1", ea.STATE_SET, "ON", "OFF").withDescription("Switch state"),
-            e
-                .numeric("countdown_1", ea.STATE_SET)
+            e.binary('valve_1', ea.STATE_SET, 'ON', 'OFF')
+                .withDescription('State of valve 1'),
+            e.enum('state_1', ea.STATE, ['Manual', 'Auto', 'Closed'])
+                .withDescription('State of valve 1'),
+            e.numeric('timer_1', ea.SET)
                 .withValueMin(1)
                 .withValueMax(1440)
                 .withValueStep(1)
-                .withUnit("min")
-                .withDescription("Countdown timer for valve operation"),
-            e.binary("valve_2", ea.STATE_SET, "ON", "OFF").withDescription("Switch state"),
-            e
-                .numeric("countdown_2", ea.STATE_SET)
+                .withUnit('min')
+                .withCategory('config')
+                .withDescription('Timer for valve 1 operation'),
+            e.numeric('countdown_1', ea.STATE)
+                .withUnit('min')
+                .withCategory('diagnostic')
+                .withDescription('Time remaining for open valve 1'),
+            e.numeric('last_duration_1', ea.STATE)
+                .withUnit('s')
+                .withCategory('diagnostic')
+                .withDescription('Last run duration for valve 1'),
+            e.binary('valve_2', ea.STATE_SET, 'ON', 'OFF')
+                .withDescription('State of valve 2'),
+            e.enum('state_2', ea.STATE, ['Manual', 'Auto', 'Closed'])
+                .withDescription('State of valve 2'),
+            e.numeric('timer_2', ea.SET)
                 .withValueMin(1)
                 .withValueMax(1440)
                 .withValueStep(1)
-                .withUnit("min")
-                .withDescription("Countdown timer for valve operation"),
+                .withUnit('min')
+                .withCategory('config')
+                .withDescription('Timer for valve 2 operation'),
+            e.numeric('countdown_2', ea.STATE)
+                .withUnit('min')
+                .withCategory('diagnostic')
+                .withDescription('Time remaining for open valve 2'),
+            e.numeric('last_duration_2', ea.STATE)
+                .withUnit('s')
+                .withCategory('diagnostic')
+                .withDescription('Last run duration for valve 2'),
             e.battery(),
+            e.numeric('fault', ea.STATE)
+                .withCategory('diagnostic')
+                .withDescription('Reported fault of device'),
         ],
         meta: {
             tuyaDatapoints: [
-                [1, "valve_1", tuya.valueConverter.onOff],
-                [59, "battery", tuya.valueConverter.raw],
-                [
-                    104,
-                    "valve_1",
-                    tuya.valueConverterBasic.lookup({
-                        OFF: tuya.enum(2),
-                        ON: tuya.enum(0),
-                    }),
-                ],
-                [2, "valve_2", tuya.valueConverter.onOff],
-                [
-                    105,
-                    "valve_2",
-                    tuya.valueConverterBasic.lookup({
-                        OFF: tuya.enum(2),
-                        ON: tuya.enum(0),
-                    }),
-                ],
-                [13, "countdown_1", tuya.valueConverter.raw],
-                [14, "countdown_2", tuya.valueConverter.raw],
+                [1, 'valve_1', tuya.valueConverter.onOff],
+                [104, 'state_1', tuya.valueConverterBasic.lookup({ Manual: tuya.enum(0), Auto: tuya.enum(1), Closed: tuya.enum(2) })],
+                [13, 'countdown_1', { from: (value) => value, to: () => undefined }], // Put this item first to make ea.STATE working
+                [13, 'timer_1', { from: () => undefined, to: (value) => value }],
+                [25, 'last_duration_1', tuya.valueConverter.raw],
+                [2, 'valve_2', tuya.valueConverter.onOff],
+                [105, 'state_2', tuya.valueConverterBasic.lookup({ Manual: tuya.enum(0), Auto: tuya.enum(1), Closed: tuya.enum(2) })],
+                [14, 'countdown_2', { from: (value) => value, to: () => undefined }], // Put this item first to make ea.STATE working
+                [14, 'timer_2', { from: () => undefined, to: (value) => value }],
+                [26, 'last_duration_2', tuya.valueConverter.raw],
+                [59, 'battery', tuya.valueConverter.raw],
+                [103, 'fault', tuya.valueConverter.raw],
             ],
         },
         whiteLabel: [tuya.whitelabel("Nova Digital", "ZVL-DUAL", "Water Valve with 2 zones", ["_TZE284_iilebqoo"])],
