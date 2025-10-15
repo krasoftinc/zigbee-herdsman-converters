@@ -352,22 +352,6 @@ const convLocal = {
             return new TextDecoder("utf-8").decode(hexToBytes);
         },
     },
-    const TS0601_GIEX_GX03_resetCountdown = {
-        cluster: 'manuSpecificTuya',
-        type: ['commandDataReport'],
-        convert: (model, msg, publish, options, meta) => {
-            const result = tuya.fz.datapoints.convert(model, msg, publish, options, meta);
-
-            if (result?.state_1 === 'Closed') {
-                result.countdown_1 = null;
-            }
-            if (result?.state_2 === 'Closed') {
-                result.countdown_2 = null;
-            }
-
-            return result;
-        }
-    },
 };
 
 const tzLocal = {
@@ -17580,7 +17564,23 @@ export const definitions: DefinitionWithExtend[] = [
         model: "GX03",
         vendor: "GIEX",
         description: 'GIEX dual-zone watering timer',
-        fromZigbee: [localStore.TS0601_GIEX_GX03_resetCountdown, tuya.fz.ignore_tuya_set_time],
+        fromZigbee: [{
+                cluster: 'manuSpecificTuya',
+                type: ['commandDataReport'],
+                convert: (model, msg, publish, options, meta) => {
+                    const result = tuya.fz.datapoints.convert(model, msg, publish, options, meta);
+
+                    if (result?.state_1 === 'Closed') {
+                        result.countdown_1 = null;
+                    }
+                    if (result?.state_2 === 'Closed') {
+                        result.countdown_2 = null;
+                    }
+
+                    return result;
+                }
+            },
+            tuya.fz.ignore_tuya_set_time],
         toZigbee: [tuya.tz.datapoints],
         configure: tuya.configureMagicPacket,
         exposes: [
