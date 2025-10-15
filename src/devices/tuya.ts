@@ -17570,17 +17570,25 @@ export const definitions: DefinitionWithExtend[] = [
                 convert: (model, msg, publish, options, meta) => {
                     const result = tuya.fz.datapoints.convert(model, msg, publish, options, meta);
 
-                    if (result?.state_1 === 'Closed') {
-                        result.countdown_1 = null;
+                    if (result?.state_1 != null) {
+                        if (result.state_1 === 'Closed') {
+                            result.countdown_1 = null;
+                        } else {
+                            result.last_duration_1 = null;
+                        }
                     }
-                    if (result?.state_2 === 'Closed') {
-                        result.countdown_2 = null;
+                    if (result?.state_2 != null) {
+                        if (result.state_2 === 'Closed') {
+                            result.countdown_2 = null;
+                        } else {
+                            result.last_duration_2 = null;
+                        }
                     }
 
                     return result;
                 }
             },
-            tuya.fz.ignore_tuya_set_time],
+            fz.ignore_tuya_set_time],
         toZigbee: [tuya.tz.datapoints],
         configure: tuya.configureMagicPacket,
         exposes: [
