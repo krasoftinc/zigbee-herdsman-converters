@@ -17569,7 +17569,6 @@ export const definitions: DefinitionWithExtend[] = [
                 type: ['commandDataReport'],
                 convert: (model, msg, publish, options, meta) => {
                     const result = tuya.fz.datapoints.convert(model, msg, publish, options, meta);
-
                     if (result?.state_1 != null) {
                         if (result.state_1 === 'Closed') {
                             result.countdown_1 = null;
@@ -17584,7 +17583,6 @@ export const definitions: DefinitionWithExtend[] = [
                             result.last_duration_2 = null;
                         }
                     }
-
                     return result;
                 }
             },
